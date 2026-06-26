@@ -24,7 +24,7 @@ export default function CenterMap({ centers }: CenterMapProps) {
       minZoom: MAP_DEFAULTS.minZoom,
       maxZoom: MAP_DEFAULTS.maxZoom,
       zoomControl: true,
-      scrollWheelZoom: false,
+      scrollWheelZoom: true,
     });
 
     L.tileLayer(MAP_DEFAULTS.tileUrl, {

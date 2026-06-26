@@ -3,6 +3,27 @@ import { createServerSupabase } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
+// Fórmula Haversine: calcula distancia en metros entre dos coordenadas
+function haversineDistance(
+  lat1: number, lng1: number,
+  lat2: number, lng2: number
+): number {
+  const R = 6_371_000; // Radio de la Tierra en metros
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+const MAX_DISTANCE_M = 30_000; // 30 kilómetros
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
@@ -17,7 +38,70 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = await createServerSupabase();
 
-    // Construir la consulta base
+    const hasLocation = !isNaN(lat) && !isNaN(lng);
+
+    // ============================================================
+    // Modo "Cerca de mí": filtrar por distancia real (< 30 km)
+    // ============================================================
+    if (hasLocation) {
+      const { data: allCenters, error } = await supabase
+        .from('centers')
+        .select(
+          `
+          id, photo_url, address, latitude, longitude, created_at,
+          country:countries!centers_country_id_fkey(id, name, iso2),
+          state:states!centers_state_id_fkey(id, name),
+          city:cities!centers_city_id_fkey(id, name)
+        `
+        )
+        .eq('status', 'active')
+        .not('latitude', 'is', null)
+        .not('longitude', 'is', null);
+
+      if (error) throw error;
+
+      // Calcular distancia y filtrar
+      type CenterWithDistance = Record<string, unknown> & { distance: number };
+
+      const withDistance: CenterWithDistance[] = (allCenters || [])
+        .map((center) => {
+          const cLat = center.latitude as number;
+          const cLng = center.longitude as number;
+          const distance = haversineDistance(lat, lng, cLat, cLng);
+          return { ...center, distance } as CenterWithDistance;
+        })
+        .filter((c) => c.distance <= MAX_DISTANCE_M)
+        .sort((a, b) => a.distance - b.distance);
+
+      const total = withDistance.length;
+      const totalPages = Math.ceil(total / limit);
+      const paginated = withDistance.slice(offset, offset + limit);
+
+      const centerIds = paginated.map((c) => c.id as string);
+      const { data: reportCounts } = await supabase
+        .from('center_reports')
+        .select('center_id')
+        .in('center_id', centerIds.length ? centerIds : ['none']);
+
+      const reportMap: Record<string, number> = {};
+      (reportCounts || []).forEach((r: { center_id: string }) => {
+        reportMap[r.center_id] = (reportMap[r.center_id] || 0) + 1;
+      });
+
+      const centers = paginated.map((c) => ({
+        ...c,
+        report_count: reportMap[(c.id as string)] || 0,
+      }));
+
+      return NextResponse.json({
+        centers,
+        pagination: { page, limit, total, totalPages },
+      });
+    }
+
+    // ============================================================
+    // Modo normal: filtros por país/estado/municipio
+    // ============================================================
     let query = supabase
       .from('centers')
       .select(
@@ -35,22 +119,16 @@ export async function GET(request: NextRequest) {
     if (stateId) query = query.eq('state_id', stateId);
     if (cityId) query = query.eq('city_id', cityId);
 
-    // Si hay coordenadas, ordenar por distancia
-    if (!isNaN(lat) && !isNaN(lng)) {
-      query = query.order('latitude', { ascending: true });
-      // Nota: ordenamiento por distancia real requeriría PostGIS o la extensión earthdistance
-      // Para MVP ordenamos por proximidad aproximada
-    } else {
-      query = query.order('created_at', { ascending: false });
-    }
+    query = query.order('created_at', { ascending: false });
 
-    const { data, error, count } = await query.range(offset, offset + limit - 1);
+    const { data, error, count } = await query.range(
+      offset,
+      offset + limit - 1
+    );
 
     if (error) throw error;
 
-    // Obtener el conteo de reportes para cada centro
     const centerIds = (data || []).map((c: { id: string }) => c.id);
-
     const { data: reportCounts } = await supabase
       .from('center_reports')
       .select('center_id')
@@ -183,7 +261,8 @@ export async function POST(request: NextRequest) {
         open_time: !is_24h ? convertTime(open_time) : null,
         close_time: !is_24h ? convertTime(close_time) : null,
         is_all_days: is_all_days || false,
-        days_of_week: !is_all_days && days_of_week?.length ? days_of_week : null,
+        days_of_week:
+          !is_all_days && days_of_week?.length ? days_of_week : null,
       })
       .select('id')
       .single();
