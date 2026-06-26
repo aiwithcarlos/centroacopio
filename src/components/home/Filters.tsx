@@ -1,7 +1,6 @@
 'use client';
 
 import { useCountries, useStates, useCities } from '@/hooks/useLocations';
-import { useGeolocation } from '@/hooks/useGeolocation';
 
 interface FiltersProps {
   countryId: string | null;
@@ -27,16 +26,13 @@ export default function Filters({
   const { countries, isLoading: loadingCountries } = useCountries();
   const { states, isLoading: loadingStates } = useStates(countryId);
   const { cities, isLoading: loadingCities } = useCities(stateId);
-  const { requestLocation, error: geoError } = useGeolocation();
 
   const handleNearMe = () => {
     navigator.geolocation?.getCurrentPosition(
       (position) => {
         onNearMe(position.coords.latitude, position.coords.longitude);
       },
-      () => {
-        // Error manejado por el hook
-      },
+      () => {},
       { enableHighAccuracy: false, timeout: 10000 }
     );
   };
@@ -48,11 +44,7 @@ export default function Filters({
         <label className="text-xs font-medium text-text-muted">País</label>
         <select
           value={countryId || ''}
-          onChange={(e) => {
-            onCountryChange(e.target.value || null);
-            onStateChange(null);
-            onCityChange(null);
-          }}
+          onChange={(e) => onCountryChange(e.target.value || null)}
           disabled={loadingCountries}
           className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary disabled:opacity-50"
         >
@@ -72,10 +64,7 @@ export default function Filters({
         </label>
         <select
           value={stateId || ''}
-          onChange={(e) => {
-            onStateChange(e.target.value || null);
-            onCityChange(null);
-          }}
+          onChange={(e) => onStateChange(e.target.value || null)}
           disabled={!countryId || loadingStates}
           className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary disabled:opacity-50"
         >
@@ -132,9 +121,6 @@ export default function Filters({
           </svg>
           {nearMeLoading ? 'Buscando...' : 'Cerca de mí'}
         </button>
-        {geoError && (
-          <span className="text-xs text-red-500 mt-1">{geoError}</span>
-        )}
       </div>
     </div>
   );
