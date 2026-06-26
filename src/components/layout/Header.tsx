@@ -59,7 +59,7 @@ export default function Header() {
                         <span className="hidden sm:inline">
                             Centro de Acopio
                         </span>
-                        <span className="sm:hidden">+ Centro</span>
+                        <span className="sm:hidden">Centro</span>
                     </Link>
                 </nav>
             </div>
