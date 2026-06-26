@@ -12,7 +12,7 @@ export function useCountries() {
     '/api/locations/countries',
     fetcher,
     {
-      dedupingInterval: 300000, // 5 min, los países no cambian
+      dedupingInterval: 300000,
       revalidateOnFocus: false,
     }
   );
@@ -41,9 +41,14 @@ export function useStates(countryId: string | null | undefined) {
   };
 }
 
-export function useCities(stateId: string | null | undefined) {
+export function useCities(
+  countryId: string | null | undefined,
+  stateId: string | null | undefined
+) {
   const { data, error, isLoading } = useSWR<City[]>(
-    stateId ? `/api/locations/cities?state_id=${stateId}` : null,
+    countryId && stateId
+      ? `/api/locations/cities?country_id=${countryId}&state_id=${stateId}`
+      : null,
     fetcher,
     {
       dedupingInterval: 300000,

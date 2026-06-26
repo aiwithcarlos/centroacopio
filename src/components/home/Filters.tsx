@@ -28,7 +28,7 @@ export default function Filters({
 }: FiltersProps) {
   const { countries, isLoading: loadingCountries } = useCountries();
   const { states, isLoading: loadingStates } = useStates(countryId);
-  const { cities, isLoading: loadingCities } = useCities(stateId);
+  const { cities, isLoading: loadingCities } = useCities(countryId, stateId);
   const [geoError, setGeoError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 

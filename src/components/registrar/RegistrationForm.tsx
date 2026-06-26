@@ -18,7 +18,7 @@ export default function RegistrationForm() {
     const [address, setAddress] = useState('');
     const { countries, isLoading: loadingCountries } = useCountries();
     const { states } = useStates(countryId);
-    const { cities } = useCities(stateId);
+    const { cities } = useCities(countryId, stateId);
 
     // Tags
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -80,28 +80,19 @@ export default function RegistrationForm() {
                 photoUrl = uploadData.url;
             }
 
-            // Obtener coordenadas de la ciudad o estado o país seleccionado
+            // Obtener coordenadas de la ciudad o estado seleccionado
             let latitude: number | null = null;
             let longitude: number | null = null;
 
             if (cityId) {
                 const selectedCity = cities.find((c) => c.id === cityId);
-                // Las ciudades que devuelve la API no tienen lat/lng en el tipo City.
-                // Para MVP, usar coordenadas aproximadas del estado o país.
+                if (selectedCity?.latitude != null) {
+                    latitude = selectedCity.latitude;
+                    longitude = selectedCity.longitude ?? null;
+                }
             }
-
-            if (stateId && latitude == null) {
-                const selectedState = states.find((s) => s.id === stateId);
-                // Similar, usar coordenadas del país.
-            }
-
-            if (countryId && latitude == null) {
-                const selectedCountry = countries.find(
-                    (c) => c.id === countryId,
-                );
-                // Para MVP: las coordenadas no se obtienen directamente de la API de países.
-                // En producción, esto se resolvería con una consulta a la BD.
-            }
+            // Nota: el endpoint de estados no devuelve lat/lng actualmente.
+            // Si se necesita, se puede extender después.
 
             // Crear centro de acopio
             const payload = {

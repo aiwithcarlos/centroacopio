@@ -21,7 +21,7 @@ export default function LocationSelectors({
 }: LocationSelectorsProps) {
   const { countries, isLoading: loadingCountries } = useCountries();
   const { states, isLoading: loadingStates } = useStates(countryId);
-  const { cities, isLoading: loadingCities } = useCities(stateId);
+  const { cities, isLoading: loadingCities } = useCities(countryId, stateId);
 
   return (
     <div className="space-y-4">

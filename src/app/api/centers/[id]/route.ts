@@ -1,7 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
+import { Country, State } from 'country-state-city';
 
 export const dynamic = 'force-dynamic';
+
+function resolveLocation(
+  countryId: string,
+  stateId: string | null,
+  cityId: string | null
+) {
+  const country = Country.getCountryByCode(countryId);
+  let state = null;
+  let city = null;
+
+  if (stateId) {
+    const s = State.getStateByCodeAndCountry(stateId, countryId);
+    if (s) state = { id: s.isoCode, name: s.name };
+  }
+
+  if (cityId) {
+    city = { id: cityId, name: cityId };
+  }
+
+  return {
+    country: country
+      ? { id: country.isoCode, name: country.name, iso2: country.isoCode }
+      : { id: countryId, name: countryId, iso2: countryId },
+    state,
+    city,
+  };
+}
 
 export async function GET(
   _request: NextRequest,
@@ -14,14 +42,7 @@ export async function GET(
 
     const { data: center, error } = await supabase
       .from('centers')
-      .select(
-        `
-        *,
-        country:countries!centers_country_id_fkey(id, name, iso2),
-        state:states!centers_state_id_fkey(id, name),
-        city:cities!centers_city_id_fkey(id, name)
-      `
-      )
+      .select('*')
       .eq('id', id)
       .single();
 
@@ -31,6 +52,13 @@ export async function GET(
         { status: 404 }
       );
     }
+
+    // Resolver nombres de ubicación
+    const loc = resolveLocation(
+      center.country_id,
+      center.state_id,
+      center.city_id
+    );
 
     // Obtener etiquetas
     const { data: centerTags } = await supabase
@@ -51,6 +79,9 @@ export async function GET(
 
     return NextResponse.json({
       ...center,
+      country: loc.country,
+      state: loc.state,
+      city: loc.city,
       tags,
       report_count: reportCount || 0,
     });

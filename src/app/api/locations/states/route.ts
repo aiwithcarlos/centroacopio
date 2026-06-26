@@ -1,29 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabase } from '@/lib/supabase/server';
+import { State } from 'country-state-city';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const countryId = searchParams.get('country_id');
+  const countryId = searchParams.get('country_id'); // ISO2 code: "VE", "CO", etc.
 
   if (!countryId) {
     return NextResponse.json(
-      { error: 'Se requiere country_id' },
+      { error: 'Se requiere country_id (ISO2)' },
       { status: 400 }
     );
   }
 
   try {
-    const supabase = await createServerSupabase();
-    const { data, error } = await supabase
-      .from('states')
-      .select('id, name')
-      .eq('country_id', countryId)
-      .order('name', { ascending: true });
+    const states = State.getStatesOfCountry(countryId).map((s) => ({
+      id: s.isoCode,       // ISO code: "VE-A", "VE-B", etc.
+      name: s.name,
+    }));
 
-    if (error) throw error;
-    return NextResponse.json(data || []);
+    states.sort((a, b) => a.name.localeCompare(b.name, 'es'));
+    return NextResponse.json(states);
   } catch {
     return NextResponse.json(
       { error: 'Error al cargar los estados' },

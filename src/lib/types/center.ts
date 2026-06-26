@@ -1,19 +1,21 @@
+// IDs basados en códigos ISO para cobertura mundial (country-state-city package)
+
 export interface Country {
-  id: string;
+  id: string;    // ISO2: "VE", "CO", "US", etc.
   name: string;
   iso2: string;
 }
 
 export interface State {
-  id: string;
-  country_id: string;
+  id: string;    // State ISO code: "VE-A", "US-NY", etc.
   name: string;
 }
 
 export interface City {
-  id: string;
-  state_id: string;
+  id: string;    // City name (unique per state)
   name: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface CenterTag {
@@ -23,9 +25,9 @@ export interface CenterTag {
 
 export interface Center {
   id: string;
-  country_id: string;
-  state_id: string | null;
-  city_id: string | null;
+  country_id: string;     // ISO2
+  state_id: string | null; // State ISO code
+  city_id: string | null;  // City name
   address: string;
   latitude: number | null;
   longitude: number | null;
@@ -64,9 +66,9 @@ export interface CenterDetail extends Center {
 }
 
 export interface CreateCenterPayload {
-  country_id: string;
-  state_id: string | null;
-  city_id: string | null;
+  country_id: string;       // ISO2
+  state_id: string | null;  // State ISO
+  city_id: string | null;   // City name
   address: string;
   latitude: number | null;
   longitude: number | null;

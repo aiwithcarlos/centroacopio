@@ -1,7 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
+import { Country, State } from 'country-state-city';
 
 export const dynamic = 'force-dynamic';
+
+// Resolver nombres de ubicación usando country-state-city
+function resolveLocation(
+  countryId: string,
+  stateId: string | null,
+  cityId: string | null
+) {
+  const country = Country.getCountryByCode(countryId);
+  let state = null;
+  let city = null;
+
+  if (stateId) {
+    const s = State.getStateByCodeAndCountry(stateId, countryId);
+    if (s) state = { id: s.isoCode, name: s.name };
+  }
+
+  if (cityId) {
+    city = { id: cityId, name: cityId };
+  }
+
+  return {
+    country: country
+      ? { id: country.isoCode, name: country.name, iso2: country.isoCode }
+      : { id: countryId, name: countryId, iso2: countryId },
+    state,
+    city,
+  };
+}
 
 // Fórmula Haversine: calcula distancia en metros entre dos coordenadas
 function haversineDistance(
@@ -47,12 +76,7 @@ export async function GET(request: NextRequest) {
       const { data: allCenters, error } = await supabase
         .from('centers')
         .select(
-          `
-          id, photo_url, address, latitude, longitude, created_at,
-          country:countries!centers_country_id_fkey(id, name, iso2),
-          state:states!centers_state_id_fkey(id, name),
-          city:cities!centers_city_id_fkey(id, name)
-        `
+          'id, photo_url, address, latitude, longitude, country_id, state_id, city_id, created_at'
         )
         .eq('status', 'active')
         .not('latitude', 'is', null)
@@ -88,10 +112,25 @@ export async function GET(request: NextRequest) {
         reportMap[r.center_id] = (reportMap[r.center_id] || 0) + 1;
       });
 
-      const centers = paginated.map((c) => ({
-        ...c,
-        report_count: reportMap[(c.id as string)] || 0,
-      }));
+      const centers = paginated.map((c) => {
+        const loc = resolveLocation(
+          c.country_id as string,
+          c.state_id as string | null,
+          c.city_id as string | null
+        );
+        return {
+          id: c.id,
+          photo_url: c.photo_url,
+          address: c.address,
+          latitude: c.latitude,
+          longitude: c.longitude,
+          created_at: c.created_at,
+          country: loc.country,
+          state: loc.state,
+          city: loc.city,
+          report_count: reportMap[(c.id as string)] || 0,
+        };
+      });
 
       return NextResponse.json({
         centers,
@@ -105,12 +144,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('centers')
       .select(
-        `
-        id, photo_url, address, latitude, longitude, created_at,
-        country:countries!centers_country_id_fkey(id, name, iso2),
-        state:states!centers_state_id_fkey(id, name),
-        city:cities!centers_city_id_fkey(id, name)
-      `,
+        'id, photo_url, address, latitude, longitude, country_id, state_id, city_id, created_at',
         { count: 'exact' }
       )
       .eq('status', 'active');
@@ -139,10 +173,25 @@ export async function GET(request: NextRequest) {
       reportMap[r.center_id] = (reportMap[r.center_id] || 0) + 1;
     });
 
-    const centers = (data || []).map((c: Record<string, unknown>) => ({
-      ...c,
-      report_count: reportMap[(c.id as string)] || 0,
-    }));
+    const centers = (data || []).map((c: Record<string, unknown>) => {
+      const loc = resolveLocation(
+        c.country_id as string,
+        c.state_id as string | null,
+        c.city_id as string | null
+      );
+      return {
+        id: c.id,
+        photo_url: c.photo_url,
+        address: c.address,
+        latitude: c.latitude,
+        longitude: c.longitude,
+        created_at: c.created_at,
+        country: loc.country,
+        state: loc.state,
+        city: loc.city,
+        report_count: reportMap[(c.id as string)] || 0,
+      };
+    });
 
     const total = count || 0;
     const totalPages = Math.ceil(total / limit);
@@ -191,45 +240,8 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createServerSupabase();
 
-    // Resolver coordenadas: prioridad ciudad > estado > país
-    let resolvedLat = latitude || null;
-    let resolvedLng = longitude || null;
-
-    if (!resolvedLat || !resolvedLng) {
-      if (city_id) {
-        const { data: cityData } = await supabase
-          .from('cities')
-          .select('latitude, longitude')
-          .eq('id', city_id)
-          .single();
-        if (cityData?.latitude) {
-          resolvedLat = cityData.latitude;
-          resolvedLng = cityData.longitude;
-        }
-      }
-      if ((!resolvedLat || !resolvedLng) && state_id) {
-        const { data: stateData } = await supabase
-          .from('states')
-          .select('latitude, longitude')
-          .eq('id', state_id)
-          .single();
-        if (stateData?.latitude) {
-          resolvedLat = stateData.latitude;
-          resolvedLng = stateData.longitude;
-        }
-      }
-      if ((!resolvedLat || !resolvedLng) && country_id) {
-        const { data: countryData } = await supabase
-          .from('countries')
-          .select('latitude, longitude')
-          .eq('id', country_id)
-          .single();
-        if (countryData?.latitude) {
-          resolvedLat = countryData.latitude;
-          resolvedLng = countryData.longitude;
-        }
-      }
-    }
+    // Las coordenadas vienen del frontend (resueltas desde la API de cities)
+    // Si no se enviaron, quedan como null (aceptable para el MVP)
 
     // Convertir hora de "8:00 AM" a "08:00:00" (TIME de PostgreSQL)
     const convertTime = (t: string | null): string | null => {
@@ -252,8 +264,8 @@ export async function POST(request: NextRequest) {
         state_id: state_id || null,
         city_id: city_id || null,
         address: address.trim(),
-        latitude: resolvedLat,
-        longitude: resolvedLng,
+        latitude: latitude || null,
+        longitude: longitude || null,
         contact_name: contact_name?.trim() || null,
         contact_phone: contact_phone?.trim() || null,
         photo_url: photo_url || null,

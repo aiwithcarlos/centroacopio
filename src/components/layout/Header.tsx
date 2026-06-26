@@ -30,7 +30,7 @@ export default function Header() {
                     </svg>
                     <div className="flex flex-col">
                         <span className="text-lg font-bold text-primary leading-tight">
-                            CAV
+                            CAV - Centro de Acopios para Venezuela
                         </span>
                         <span className="text-xs text-text-muted leading-tight hidden sm:block">
                             Centro Acopio Venezuela

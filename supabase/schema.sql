@@ -66,9 +66,9 @@ CREATE INDEX IF NOT EXISTS idx_cities_name ON cities(name ASC);
 
 CREATE TABLE IF NOT EXISTS centers (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    country_id      UUID NOT NULL REFERENCES countries(id),
-    state_id        UUID REFERENCES states(id),
-    city_id         UUID REFERENCES cities(id),
+    country_id      CHAR(2) NOT NULL,                -- ISO2: "VE", "CO", "US"
+    state_id        TEXT,                             -- State ISO: "VE-A", "US-NY"
+    city_id         TEXT,                             -- City name
     address         TEXT NOT NULL,
     latitude        DOUBLE PRECISION,
     longitude       DOUBLE PRECISION,

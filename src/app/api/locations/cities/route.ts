@@ -1,29 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabase } from '@/lib/supabase/server';
+import { City } from 'country-state-city';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const stateId = searchParams.get('state_id');
+  const countryId = searchParams.get('country_id'); // ISO2: "VE", "CO"
+  const stateId = searchParams.get('state_id');      // State ISO: "VE-A", "VE-B"
 
-  if (!stateId) {
+  if (!countryId || !stateId) {
     return NextResponse.json(
-      { error: 'Se requiere state_id' },
+      { error: 'Se requieren country_id y state_id' },
       { status: 400 }
     );
   }
 
   try {
-    const supabase = await createServerSupabase();
-    const { data, error } = await supabase
-      .from('cities')
-      .select('id, name')
-      .eq('state_id', stateId)
-      .order('name', { ascending: true });
+    const cities = City.getCitiesOfState(countryId, stateId).map((c) => ({
+      id: c.name,          // Usar el nombre de la ciudad como ID
+      name: c.name,
+      latitude: Number(c.latitude) || null,
+      longitude: Number(c.longitude) || null,
+    }));
 
-    if (error) throw error;
-    return NextResponse.json(data || []);
+    cities.sort((a, b) => a.name.localeCompare(b.name, 'es'));
+    return NextResponse.json(cities);
   } catch {
     return NextResponse.json(
       { error: 'Error al cargar las ciudades' },
