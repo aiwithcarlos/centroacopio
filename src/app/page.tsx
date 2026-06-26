@@ -1,65 +1,171 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+import { Suspense, useCallback } from 'react';
+import dynamic from 'next/dynamic';
+import Link from 'next/link';
+import WelcomeBanner from '@/components/home/WelcomeBanner';
+import Filters from '@/components/home/Filters';
+import TotalCount from '@/components/home/TotalCount';
+import CenterGrid from '@/components/home/CenterGrid';
+import Pagination from '@/components/home/Pagination';
+import { useCenters } from '@/hooks/useCenters';
+import { useUrlParams } from '@/hooks/useUrlParams';
+import LoadingSpinner from '@/components/shared/LoadingSpinner';
+import ErrorMessage from '@/components/shared/ErrorMessage';
+
+// Importar el mapa dinámicamente para evitar SSR (Leaflet usa window)
+const CenterMap = dynamic(() => import('@/components/home/CenterMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[400px] sm:h-[500px] w-full rounded-xl bg-gray-100 animate-pulse flex items-center justify-center">
+      <LoadingSpinner />
     </div>
+  ),
+});
+
+function HomeContent() {
+  const { getParam, setParam, setMultipleParams } = useUrlParams();
+
+  const countryId = getParam('country_id');
+  const stateId = getParam('state_id');
+  const cityId = getParam('city_id');
+  const pageParam = getParam('page');
+  const latParam = getParam('lat');
+  const lngParam = getParam('lng');
+  const page = pageParam ? parseInt(pageParam) : 1;
+
+  const { centers, pagination, isLoading, isError, mutate } = useCenters({
+    country_id: countryId,
+    state_id: stateId,
+    city_id: cityId,
+    lat: latParam ? parseFloat(latParam) : null,
+    lng: lngParam ? parseFloat(lngParam) : null,
+    page,
+    limit: 12,
+  });
+
+  const handleCountryChange = useCallback(
+    (id: string | null) => {
+      setParam('country_id', id);
+    },
+    [setParam]
+  );
+
+  const handleStateChange = useCallback(
+    (id: string | null) => {
+      setParam('state_id', id);
+    },
+    [setParam]
+  );
+
+  const handleCityChange = useCallback(
+    (id: string | null) => {
+      setParam('city_id', id);
+    },
+    [setParam]
+  );
+
+  const handleNearMe = useCallback(
+    (lat: number, lng: number) => {
+      setMultipleParams({
+        lat: String(lat),
+        lng: String(lng),
+        country_id: null,
+        state_id: null,
+        city_id: null,
+      });
+    },
+    [setMultipleParams]
+  );
+
+  const handlePageChange = useCallback(
+    (newPage: number) => {
+      setParam('page', String(newPage));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+    [setParam]
+  );
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+      {/* Mensaje de bienvenida */}
+      <WelcomeBanner />
+
+      {/* Botón de registro */}
+      <div className="flex justify-center">
+        <Link
+          href="/registrar"
+          className="inline-flex items-center gap-2 bg-primary hover:bg-primary-dark text-white font-semibold px-6 py-3 rounded-xl text-base transition-all hover:shadow-lg no-underline"
+        >
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2.5}
+              d="M12 4v16m8-8H4"
+            />
+          </svg>
+          + Centro de Acopio
+        </Link>
+      </div>
+
+      {/* Mapa */}
+      <CenterMap centers={centers} />
+
+      {/* Contador y filtros */}
+      <div className="space-y-4">
+        <TotalCount total={pagination.total} isLoading={isLoading} />
+
+        <Filters
+          countryId={countryId}
+          stateId={stateId}
+          cityId={cityId}
+          onCountryChange={handleCountryChange}
+          onStateChange={handleStateChange}
+          onCityChange={handleCityChange}
+          onNearMe={handleNearMe}
+          nearMeLoading={false}
+        />
+      </div>
+
+      {/* Mensaje de error */}
+      {isError && (
+        <ErrorMessage
+          message="No se pudieron cargar los centros de acopio."
+          onRetry={() => mutate()}
+        />
+      )}
+
+      {/* Grid de centros */}
+      {!isError && (
+        <>
+          <CenterGrid centers={centers} isLoading={isLoading} />
+          <Pagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            onPageChange={handlePageChange}
+          />
+        </>
+      )}
+    </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <LoadingSpinner />
+        </div>
+      }
+    >
+      <HomeContent />
+    </Suspense>
   );
 }
