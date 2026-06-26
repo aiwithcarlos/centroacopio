@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminSupabase } from '@/lib/supabase/admin';
+import { createServerSupabase } from '@/lib/supabase/server';
 import { createHash } from 'crypto';
 
 export async function POST(
@@ -16,7 +16,7 @@ export async function POST(
       .update(`${ip}:${id}`)
       .digest('hex');
 
-    const supabase = createAdminSupabase();
+    const supabase = await createServerSupabase();
 
     // Verificar si ya reportó en las últimas 24h
     const { data: hasRecent } = await supabase.rpc('has_recent_report', {
