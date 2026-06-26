@@ -18,6 +18,8 @@ export const PREDEFINED_TAGS: TagDefinition[] = [
   { slug: 'antibioticos', name: 'Antibióticos', category: 'medico' },
   { slug: 'antiinflamatorios', name: 'Antiinflamatorios', category: 'medico' },
   { slug: 'suero-fisiologico', name: 'Suero fisiológico', category: 'medico' },
+  { slug: 'cal', name: 'Cal', category: 'medico' },
+  { slug: 'formol', name: 'Formol', category: 'medico' },
   // Higiene
   { slug: 'panales', name: 'Pañales', category: 'higiene' },
   { slug: 'toallas-sanitarias', name: 'Toallas sanitarias', category: 'higiene' },
