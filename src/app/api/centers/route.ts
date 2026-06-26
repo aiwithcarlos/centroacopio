@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
       const { data: allCenters, error } = await supabase
         .from('centers')
         .select(
-          'id, photo_url, address, latitude, longitude, country_id, state_id, city_id, created_at'
+          'id, photo_url, address, latitude, longitude, country_id, state_id, city_id, contact_phone, created_at'
         )
         .eq('status', 'active')
         .not('latitude', 'is', null)
@@ -124,6 +124,7 @@ export async function GET(request: NextRequest) {
           address: c.address,
           latitude: c.latitude,
           longitude: c.longitude,
+          contact_phone: c.contact_phone,
           created_at: c.created_at,
           country: loc.country,
           state: loc.state,
@@ -144,7 +145,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('centers')
       .select(
-        'id, photo_url, address, latitude, longitude, country_id, state_id, city_id, created_at',
+        'id, photo_url, address, latitude, longitude, country_id, state_id, city_id, contact_phone, created_at',
         { count: 'exact' }
       )
       .eq('status', 'active');
@@ -185,6 +186,7 @@ export async function GET(request: NextRequest) {
         address: c.address,
         latitude: c.latitude,
         longitude: c.longitude,
+        contact_phone: c.contact_phone,
         created_at: c.created_at,
         country: loc.country,
         state: loc.state,
