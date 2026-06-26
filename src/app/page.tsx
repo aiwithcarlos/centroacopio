@@ -45,6 +45,10 @@ function HomeContent() {
     );
     const pageParam = searchParams.get('page');
     const [page, setPage] = useState(pageParam ? parseInt(pageParam) : 1);
+    const [nearMeLoading, setNearMeLoading] = useState(false);
+    // Coordenadas del usuario para re-centrar el mapa
+    const [userLat, setUserLat] = useState<number | null>(null);
+    const [userLng, setUserLng] = useState<number | null>(null);
 
     // Sincronizar estado → URL (un solo router.replace por cambio)
     useEffect(() => {
@@ -92,12 +96,23 @@ function HomeContent() {
         setLngParam(null);
     }, []);
 
+    const handleNearMeStart = useCallback(() => {
+        setNearMeLoading(true);
+    }, []);
+
+    const handleNearMeError = useCallback(() => {
+        setNearMeLoading(false);
+    }, []);
+
     const handleNearMe = useCallback((lat: number, lng: number) => {
+        setNearMeLoading(false);
         setLatParam(String(lat));
         setLngParam(String(lng));
         setCountryId(null);
         setStateId(null);
         setCityId(null);
+        setUserLat(lat);
+        setUserLng(lng);
     }, []);
 
     const handlePageChange = useCallback((newPage: number) => {
@@ -121,7 +136,7 @@ function HomeContent() {
                 </Link>
             </div>
 
-            <CenterMap centers={centers} />
+            <CenterMap centers={centers} userLat={userLat} userLng={userLng} />
 
             <div className="space-y-4">
                 <TotalCount total={pagination.total} isLoading={isLoading} />
@@ -134,7 +149,8 @@ function HomeContent() {
                     onStateChange={handleStateChange}
                     onCityChange={handleCityChange}
                     onNearMe={handleNearMe}
-                    nearMeLoading={false}
+                    onNearMeStart={handleNearMeStart}
+                    onNearMeError={handleNearMeError}
                 />
             </div>
 

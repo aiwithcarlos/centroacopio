@@ -11,7 +11,7 @@ export default function Footer() {
           Reporta y comunícate con las líneas oficiales 📞 🇻🇪
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {EMERGENCY_CONTACTS.map((region) => (
             <div
               key={region.region}
@@ -21,16 +21,18 @@ export default function Footer() {
                 <span>{region.icon}</span>
                 {region.region}
               </h3>
-              <ul className="space-y-1.5">
+              <ul className="space-y-2">
                 {region.numbers.map((item) => (
                   <li
                     key={item.name}
-                    className="flex justify-between items-center text-sm"
+                    className="flex items-center justify-between gap-2 text-sm"
                   >
-                    <span className="text-text-muted">{item.name}</span>
+                    <span className="text-text-muted flex-shrink-0">
+                      {item.name}
+                    </span>
                     <a
                       href={`tel:${item.phone.replace(/[()\-\s]/g, '')}`}
-                      className="font-mono font-medium text-primary hover:underline"
+                      className="font-mono font-medium text-primary hover:underline whitespace-nowrap text-right"
                     >
                       {item.phone}
                     </a>

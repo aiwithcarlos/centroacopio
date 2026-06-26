@@ -7,9 +7,11 @@ import { MAP_DEFAULTS } from '@/lib/constants/map';
 
 interface CenterMapProps {
   centers: CenterListItem[];
+  userLat?: number | null;
+  userLng?: number | null;
 }
 
-export default function CenterMap({ centers }: CenterMapProps) {
+export default function CenterMap({ centers, userLat, userLng }: CenterMapProps) {
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<L.LayerGroup>(L.layerGroup());
@@ -125,6 +127,17 @@ export default function CenterMap({ centers }: CenterMapProps) {
       });
     }
   }, [centers]);
+
+  // Re-centrar el mapa a la ubicación del usuario cuando usa "Cerca de mí"
+  useEffect(() => {
+    if (!mapRef.current || userLat == null || userLng == null) return;
+
+    const map = mapRef.current;
+    // Si hay centros cercanos, fitBounds ya lo manejó. Si no, centrar en el usuario.
+    if (centers.length === 0) {
+      map.setView([userLat, userLng], 13, { animate: true });
+    }
+  }, [userLat, userLng, centers.length]);
 
   return (
     <div
