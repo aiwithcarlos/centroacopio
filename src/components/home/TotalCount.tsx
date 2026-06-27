@@ -5,14 +5,17 @@ interface TotalCountProps {
 
 export default function TotalCount({ total, isLoading }: TotalCountProps) {
   return (
-    <div className="flex items-center gap-2">
-      <h2 className="text-lg font-semibold text-text">
+    <div className="inline-flex items-center gap-3 bg-green-50 border-2 border-green-400 rounded-xl px-5 py-3">
+      <span className="text-lg font-bold text-green-800">
         Centros de Acopio
-      </h2>
+      </span>
       {isLoading ? (
-        <span className="inline-block w-8 h-5 bg-gray-200 rounded animate-pulse" />
+        <span className="inline-block w-10 h-7 bg-green-200 rounded animate-pulse" />
       ) : (
-        <span className="inline-flex items-center justify-center bg-primary text-white text-xs font-bold rounded-full w-6 h-6">
+        <span
+          className="text-2xl font-bold text-green-700"
+          style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' }}
+        >
           {total}
         </span>
       )}

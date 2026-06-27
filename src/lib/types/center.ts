@@ -53,6 +53,7 @@ export interface CenterListItem {
   address: string;
   latitude: number | null;
   longitude: number | null;
+  contact_name: string | null;
   contact_phone: string | null;
   report_count: number;
   created_at: string;

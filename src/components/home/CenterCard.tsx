@@ -8,19 +8,53 @@ interface CenterCardProps {
   center: CenterListItem;
 }
 
+// Colores suaves para placeholder de país sin foto
+const PLACEHOLDER_COLORS = [
+  { bg: '#DCFCE7', text: '#16A34A' },   // verde
+  { bg: '#DBEAFE', text: '#2563EB' },   // azul
+  { bg: '#F3E8FF', text: '#7C3AED' },   // violeta
+  { bg: '#FEE2E2', text: '#DC2626' },   // rojo
+  { bg: '#EDE9FE', text: '#6D28D9' },   // púrpura
+];
+
+function getPlaceholderColor(iso2: string) {
+  const sum = (iso2 || '??').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  return PLACEHOLDER_COLORS[sum % PLACEHOLDER_COLORS.length];
+}
+
 export default function CenterCard({ center }: CenterCardProps) {
+  const hasPhoto = !!center.photo_url;
+  const iso2 = center.country?.iso2 || '??';
+  const placeholder = getPlaceholderColor(iso2);
+
   return (
     <Link
       href={`/centro/${center.id}`}
       className="block bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md hover:border-primary/30 transition-all duration-200 no-underline group"
     >
+      {/* Foto o placeholder con letras del país */}
       <div className="h-40 overflow-hidden">
-        <ImageWithFallback
-          src={center.photo_url}
-          alt={`Centro de acopio en ${center.country?.name || 'desconocido'}`}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        />
+        {hasPhoto ? (
+          <ImageWithFallback
+            src={center.photo_url}
+            alt={`Centro de acopio en ${center.country?.name || 'desconocido'}`}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div
+            className="w-full h-full flex items-center justify-center"
+            style={{ backgroundColor: placeholder.bg }}
+          >
+            <span
+              className="text-5xl font-extrabold tracking-wider"
+              style={{ color: placeholder.text, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' }}
+            >
+              {iso2}
+            </span>
+          </div>
+        )}
       </div>
+
       <div className="p-3 sm:p-4 space-y-1.5">
         {/* País con bandera */}
         <div className="flex items-center gap-1.5">
@@ -47,7 +81,7 @@ export default function CenterCard({ center }: CenterCardProps) {
         )}
 
         {/* Dirección con icono */}
-        <p className="text-xs text-text-muted leading-relaxed line-clamp-2 flex items-start gap-1">
+        <p className="text-xs text-text-muted leading-relaxed flex items-start gap-1">
           <svg
             className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-gray-400"
             fill="none"
@@ -69,6 +103,28 @@ export default function CenterCard({ center }: CenterCardProps) {
           </svg>
           <span>{truncateAddress(center.address, 80)}</span>
         </p>
+
+        {/* Persona de contacto con icono */}
+        {center.contact_name && (
+          <p className="flex items-center gap-1">
+            <svg
+              className="w-3.5 h-3.5 flex-shrink-0 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+              />
+            </svg>
+            <span className="font-medium text-xs text-text">
+              {center.contact_name}
+            </span>
+          </p>
+        )}
 
         {/* Teléfono con icono */}
         {center.contact_phone && (

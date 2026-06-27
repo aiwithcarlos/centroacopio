@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export default function Header() {
     return (
-        <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+        <header className="sticky top-0 z-50 bg-white shadow-sm">
             <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
                 <Link
                     href="/"
@@ -30,7 +30,7 @@ export default function Header() {
                     </svg>
                     <div className="flex flex-col">
                         <span className="text-lg font-bold text-primary leading-tight">
-                            CAV - Centro de Acopios para Venezuela
+                            CAV - Centros de Acopio para Venezuela
                         </span>
                         <span className="text-xs text-text-muted leading-tight hidden sm:block">
                             Centro Acopio Venezuela
@@ -63,6 +63,11 @@ export default function Header() {
                     </Link>
                 </nav>
             </div>
+
+            {/* Líneas tricolor de la bandera venezolana (una debajo de otra) */}
+            <div className="h-[3px] w-full" style={{ backgroundColor: '#FFD700' }} />
+            <div className="h-[3px] w-full" style={{ backgroundColor: '#00247D' }} />
+            <div className="h-[3px] w-full" style={{ backgroundColor: '#CF142B' }} />
         </header>
     );
 }

@@ -15,7 +15,7 @@ export default function WelcomeBanner() {
       />
 
       <h1 className="text-xl sm:text-2xl font-bold text-text mb-2 relative">
-        Bienvenido a Centro de Acopio
+        Bienvenido a Centros de Acopio
       </h1>
       <p className="text-text-muted text-sm sm:text-base max-w-2xl mx-auto leading-relaxed relative">
         Un servicio web destinado a otorgarte información sobre los diferentes
