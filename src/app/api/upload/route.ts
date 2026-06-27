@@ -1,12 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { v4 as uuidv4 } from 'uuid';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
+function getClientIp(request: NextRequest): string {
+  const forwarded = request.headers.get('x-forwarded-for');
+  return forwarded?.split(',')[0]?.trim() || '127.0.0.1';
+}
+
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting para uploads
+    const ip = getClientIp(request);
+    const rl = rateLimit(ip, 'post-upload', RATE_LIMITS.POST_UPLOAD);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Demasiadas subidas. Intenta más tarde.' },
+        {
+          status: 429,
+          headers: { 'Retry-After': String(rl.resetIn) },
+        }
+      );
+    }
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
 

@@ -7,6 +7,9 @@ export const metadata: Metadata = {
 };
 
 export default function RegistrarPage() {
+  // Token con timestamp del servidor para prevenir envíos instantáneos (bots)
+  const timestampToken = String(Date.now());
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 sm:py-8">
       <h1 className="text-2xl font-bold text-text mb-1">
@@ -17,7 +20,7 @@ export default function RegistrarPage() {
         a quienes más lo necesitan.
       </p>
 
-      <RegistrationForm />
+      <RegistrationForm timestampToken={timestampToken} />
     </div>
   );
 }

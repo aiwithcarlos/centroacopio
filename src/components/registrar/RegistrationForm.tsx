@@ -8,7 +8,11 @@ import ScheduleSelector from './ScheduleSelector';
 import ContactInfo from './ContactInfo';
 import PhotoUpload from './PhotoUpload';
 
-export default function RegistrationForm() {
+export default function RegistrationForm({
+    timestampToken,
+}: {
+    timestampToken: string;
+}) {
     const router = useRouter();
 
     // Ubicación
@@ -111,6 +115,8 @@ export default function RegistrationForm() {
                 is_all_days: isAllDays,
                 days_of_week: isAllDays ? null : daysOfWeek,
                 tags: selectedTags,
+                _t: timestampToken,
+                website: '', // honeypot — siempre vacío
             };
 
             const res = await fetch('/api/centers', {
@@ -176,6 +182,22 @@ export default function RegistrationForm() {
 
     return (
         <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Honeypot: campo invisible para humanos, los bots lo llenan */}
+            <input
+                type="text"
+                name="website"
+                autoComplete="off"
+                tabIndex={-1}
+                style={{
+                    position: 'absolute',
+                    left: '-9999px',
+                    opacity: 0,
+                    height: 0,
+                    width: 0,
+                }}
+                aria-hidden="true"
+            />
+
             {/* Error */}
             {error && (
                 <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">

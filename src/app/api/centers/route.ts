@@ -1,8 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { Country, State } from 'country-state-city';
+import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
+import { PREDEFINED_TAGS } from '@/lib/constants/tags';
 
 export const dynamic = 'force-dynamic';
+
+const VALID_TAG_SLUGS = new Set(PREDEFINED_TAGS.map((t) => t.slug));
+
+function getClientIp(request: NextRequest): string {
+  const forwarded = request.headers.get('x-forwarded-for');
+  return forwarded?.split(',')[0]?.trim() || '127.0.0.1';
+}
+
+function sanitize(str: string): string {
+  return str.replace(/<[^>]*>/g, '').trim();
+}
 
 // Resolver nombres de ubicación usando country-state-city
 function resolveLocation(
@@ -65,6 +78,22 @@ export async function GET(request: NextRequest) {
   const lng = parseFloat(searchParams.get('lng') || '');
 
   try {
+    // Rate limiting para GET (anti-scraping)
+    const ip = getClientIp(request);
+    const rl = rateLimit(ip, 'get-centers', RATE_LIMITS.GET_CENTERS);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Demasiadas solicitudes. Intenta de nuevo en unos segundos.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rl.resetIn),
+            'X-RateLimit-Remaining': '0',
+          },
+        }
+      );
+    }
+
     const supabase = await createServerSupabase();
 
     const hasLocation = !isNaN(lat) && !isNaN(lng);
@@ -215,6 +244,19 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting para POST (anti-bots)
+    const ip = getClientIp(request);
+    const rl = rateLimit(ip, 'post-centers', RATE_LIMITS.POST_CENTER);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Has registrado demasiados centros. Intenta más tarde.' },
+        {
+          status: 429,
+          headers: { 'Retry-After': String(rl.resetIn) },
+        }
+      );
+    }
+
     const body = await request.json();
     const {
       country_id,
@@ -232,7 +274,27 @@ export async function POST(request: NextRequest) {
       is_all_days,
       days_of_week,
       tags,
+      // Campos de seguridad
+      website,       // honeypot
+      _t,             // timestamp token (generado por el servidor)
     } = body;
+
+    // Honeypot: si el campo oculto tiene valor, es un bot
+    if (website) {
+      // Responder como éxito para no revelar que fue detectado
+      return NextResponse.json({ id: 'ok' }, { status: 201 });
+    }
+
+    // Time check: el formulario debe haberse llenado en al menos 5 segundos
+    if (_t) {
+      const elapsed = Date.now() - parseInt(_t);
+      if (elapsed < 5000) {
+        return NextResponse.json(
+          { error: 'Por favor, completa el formulario con más detalle.' },
+          { status: 400 }
+        );
+      }
+    }
 
     // Validación básica
     if (!country_id || !address || !address.trim()) {
@@ -241,6 +303,28 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Validación de longitud
+    const sanitizedAddress = sanitize(address).substring(0, 500);
+    if (!sanitizedAddress) {
+      return NextResponse.json(
+        { error: 'La dirección no es válida.' },
+        { status: 400 }
+      );
+    }
+
+    // Validar tags
+    const validTags = (tags || []).filter((t: string) =>
+      VALID_TAG_SLUGS.has(t)
+    );
+
+    // Validar longitud de campos opcionales
+    const sanitizedName = contact_name
+      ? sanitize(contact_name).substring(0, 100)
+      : null;
+    const sanitizedPhone = contact_phone
+      ? sanitize(contact_phone).substring(0, 100)
+      : null;
 
     const supabase = await createServerSupabase();
 
@@ -267,11 +351,11 @@ export async function POST(request: NextRequest) {
         country_id,
         state_id: state_id || null,
         city_id: city_id || null,
-        address: address.trim(),
+        address: sanitizedAddress,
         latitude: latitude || null,
         longitude: longitude || null,
-        contact_name: contact_name?.trim() || null,
-        contact_phone: contact_phone?.trim() || null,
+        contact_name: sanitizedName,
+        contact_phone: sanitizedPhone,
         photo_url: photo_url || null,
         is_24h: is_24h || false,
         open_time: !is_24h ? convertTime(open_time) : null,
@@ -285,9 +369,9 @@ export async function POST(request: NextRequest) {
 
     if (centerError) throw centerError;
 
-    // Insertar etiquetas
-    if (tags && Array.isArray(tags) && tags.length > 0) {
-      const tagInserts = tags.map((slug: string) => ({
+    // Insertar etiquetas (solo slugs válidos)
+    if (validTags.length > 0) {
+      const tagInserts = validTags.map((slug: string) => ({
         center_id: center.id,
         tag_slug: slug,
       }));
