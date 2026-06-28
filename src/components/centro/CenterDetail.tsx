@@ -1,12 +1,27 @@
 'use client';
 
 import type { CenterDetail as CenterDetailType } from '@/lib/types/center';
-import ImageWithFallback from '@/components/shared/ImageWithFallback';
 import CountryFlag from '@/components/shared/CountryFlag';
 import ReportButton from './ReportButton';
 import { formatDate, formatTime } from '@/lib/utils/formats';
 import { DAYS_OF_WEEK } from '@/lib/constants/days';
 import Link from 'next/link';
+
+// Colores suaves para placeholder de país sin foto
+const PLACEHOLDER_COLORS = [
+    { bg: '#DCFCE7', text: '#16A34A' },
+    { bg: '#DBEAFE', text: '#2563EB' },
+    { bg: '#F3E8FF', text: '#7C3AED' },
+    { bg: '#FEE2E2', text: '#DC2626' },
+    { bg: '#EDE9FE', text: '#6D28D9' },
+];
+
+function getPlaceholderColor(iso2: string) {
+    const sum = (iso2 || '??')
+        .split('')
+        .reduce((acc, c) => acc + c.charCodeAt(0), 0);
+    return PLACEHOLDER_COLORS[sum % PLACEHOLDER_COLORS.length];
+}
 
 interface CenterDetailProps {
     center: CenterDetailType;
@@ -25,15 +40,36 @@ export default function CenterDetail({ center }: CenterDetailProps) {
               .filter(Boolean)
               .join(', ');
 
+    const hasPhoto = !!center.photo_url;
+    const iso2 = center.country?.iso2 || '??';
+    const placeholder = getPlaceholderColor(iso2);
+
     return (
         <div className="space-y-6">
-            {/* Foto principal */}
+            {/* Foto principal o placeholder con letras del país */}
             <div className="rounded-2xl overflow-hidden border border-gray-200 bg-white">
-                <ImageWithFallback
-                    src={center.photo_url}
-                    alt={`Centro de acopio en ${center.country?.name || 'desconocido'}`}
-                    className="w-full h-64 sm:h-80 object-cover"
-                />
+                {hasPhoto ? (
+                    <img
+                        src={center.photo_url!}
+                        alt={`Centro de acopio en ${center.country?.name || 'desconocido'}`}
+                        className="w-full h-64 sm:h-80 object-cover"
+                    />
+                ) : (
+                    <div
+                        className="w-full h-64 sm:h-80 flex items-center justify-center"
+                        style={{ backgroundColor: placeholder.bg }}
+                    >
+                        <span
+                            className="text-6xl sm:text-7xl font-extrabold tracking-wider"
+                            style={{
+                                color: placeholder.text,
+                                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                            }}
+                        >
+                            {iso2}
+                        </span>
+                    </div>
+                )}
             </div>
 
             {/* Información principal */}
