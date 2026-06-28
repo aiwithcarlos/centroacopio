@@ -65,6 +65,7 @@ function HomeContent() {
         router.replace(newUrl, { scroll: false });
     }, [countryId, stateId, cityId, latParam, lngParam, page, router, pathname]);
 
+    // Grid paginado
     const { centers, pagination, isLoading, isError, mutate } = useCenters({
         country_id: countryId,
         state_id: stateId,
@@ -73,6 +74,17 @@ function HomeContent() {
         lng: lngParam ? parseFloat(lngParam) : null,
         page,
         limit: 12,
+    });
+
+    // Mapa: todos los centros que coinciden con los filtros (sin paginación)
+    const { centers: allCenters } = useCenters({
+        country_id: countryId,
+        state_id: stateId,
+        city_id: cityId,
+        lat: latParam ? parseFloat(latParam) : null,
+        lng: lngParam ? parseFloat(lngParam) : null,
+        page: 1,
+        limit: 0, // 0 = sin límite
     });
 
     const handleCountryChange = useCallback((id: string | null) => {
@@ -136,7 +148,7 @@ function HomeContent() {
                 </Link>
             </div>
 
-            <CenterMap centers={centers} userLat={userLat} userLng={userLng} />
+            <CenterMap centers={allCenters} userLat={userLat} userLng={userLng} />
 
             <div className="space-y-4">
                 <TotalCount total={pagination.total} isLoading={isLoading} />

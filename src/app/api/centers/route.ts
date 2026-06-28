@@ -69,7 +69,9 @@ const MAX_DISTANCE_M = 30_000; // 30 kilómetros
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
-  const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '12')));
+  const limitRaw = parseInt(searchParams.get('limit') || '12');
+  // limit=0 significa "todos" (máx 500 para el mapa)
+  const limit = limitRaw === 0 ? 500 : Math.min(50, Math.max(1, limitRaw));
   const offset = (page - 1) * limit;
   const countryId = searchParams.get('country_id') || null;
   const stateId = searchParams.get('state_id') || null;

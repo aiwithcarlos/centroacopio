@@ -156,7 +156,7 @@ export default function CenterMap({ centers, userLat, userLng }: CenterMapProps)
   return (
     <div
       ref={containerRef}
-      style={{ height: '450px' }}
+      style={{ height: '550px' }}
       className="w-full rounded-xl overflow-hidden border border-gray-200 shadow-sm bg-gray-100"
       aria-label="Mapa de centros de acopio"
     />

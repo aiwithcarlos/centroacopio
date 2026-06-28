@@ -26,8 +26,8 @@ export function useCenters(filters: CenterFilters) {
     params.set('lat', String(filters.lat));
   if (filters.lng != null && filters.lng !== undefined)
     params.set('lng', String(filters.lng));
-  params.set('page', String(filters.page || 1));
-  params.set('limit', String(filters.limit || 12));
+  params.set('page', String(filters.page ?? 1));
+  params.set('limit', String(filters.limit ?? 12));
 
   const queryString = params.toString();
   const key = `/api/centers?${queryString}`;
