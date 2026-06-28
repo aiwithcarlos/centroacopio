@@ -104,13 +104,27 @@ export default function CenterMap({ centers, userLat, userLng }: CenterMapProps)
 
       const marker = L.marker(latLng, { icon });
 
+      // Escapar HTML para prevenir XSS en popups de Leaflet
+      const esc = (str: string) =>
+        str
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+
+      const countryName = esc(center.country?.name || '');
+      const stateName = center.state ? esc(center.state.name) : '';
+      const cityName = center.city ? esc(center.city.name) : '';
+      const addr = esc(center.address.substring(0, 50));
+
       const popupContent = `
         <div style="min-width:170px;font-family:system-ui,sans-serif;">
-          <p style="margin:0 0 3px;font-weight:600;font-size:13px;">${center.country?.name || ''}</p>
-          ${center.state ? `<p style="margin:0;font-size:11px;color:#64748b;">${center.state.name}</p>` : ''}
-          ${center.city ? `<p style="margin:0 0 3px;font-size:11px;color:#64748b;">${center.city.name}</p>` : ''}
-          <p style="margin:0 0 4px;font-size:10px;color:#94a3b8;">${center.address.substring(0, 50)}</p>
-          <a href="/centro/${center.id}" style="display:inline-block;padding:4px 10px;background:#16a34a;color:white;border-radius:6px;font-size:11px;text-decoration:none;">Ver detalle →</a>
+          <p style="margin:0 0 3px;font-weight:600;font-size:13px;">${countryName}</p>
+          ${stateName ? `<p style="margin:0;font-size:11px;color:#64748b;">${stateName}</p>` : ''}
+          ${cityName ? `<p style="margin:0 0 3px;font-size:11px;color:#64748b;">${cityName}</p>` : ''}
+          <p style="margin:0 0 4px;font-size:10px;color:#94a3b8;">${addr}</p>
+          <a href="/centro/${esc(center.id)}" style="display:inline-block;padding:4px 10px;background:#16a34a;color:white;border-radius:6px;font-size:11px;text-decoration:none;">Ver detalle →</a>
         </div>
       `;
 
